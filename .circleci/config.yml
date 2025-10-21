@@ -1,18 +1,44 @@
 version: 2.1
+
 jobs:
   test:
     docker:
       - image: cimg/python:3.11
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "requirements.txt" }}
       - run:
           name: Install dependencies
           command: pip install -r requirements.txt
+      - save_cache:
+          paths:
+            - /home/circleci/.cache/pip
+          key: v1-deps-{{ checksum "requirements.txt" }}
       - run:
           name: Run tests
           command: pytest
+
+  check_formatting:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install dependencies
+          command: |
+            pip install -r requirements.txt
+            pip install black
+      - run:
+          name: Check formatting
+          command: black --check .
 
 workflows:
   build_and_test:
     jobs:
       - test
+      - check_formatting
